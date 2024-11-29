@@ -1,5 +1,6 @@
 #include "lab_m1/Tema2/Tema2.h"
 #include "lab_m1/Tema2/Terrain.h"
+#include "lab_m1/Tema2/Drone.h"
 
 #include <vector>
 #include <string>
@@ -29,16 +30,34 @@ void Tema2::Init()
         meshes[mesh->GetMeshID()] = mesh;
     }
 
+
     projectionMatrix = glm::perspective(fov, window->props.aspectRatio, 0.01f, 200.0f);
 
     Terrain* terrain = new Terrain(24, 24);
     terrain->createTerrain();
-    CreateMesh("pat_A", terrain->vertices, terrain->indices);
+    CreateMesh("terrain", terrain->vertices, terrain->indices);
+
+    Drone* drone = new Drone();
+    drone->createDrone();
+    CreateMesh("droneP1", drone->verticesP1, drone->indicesP1);
+    CreateMesh("droneP2", drone->verticesP2, drone->indicesP2);
+    CreateMesh("droneC1", drone->verticesC1, drone->indicesC1);
+    CreateMesh("droneC2", drone->verticesC2, drone->indicesC2);
+    CreateMesh("droneC3", drone->verticesC3, drone->indicesC3);
+    CreateMesh("droneC4", drone->verticesC4, drone->indicesC4);
 
     {
         Shader* shader = new Shader("TerrainShader");
-        shader->AddShader(PATH_JOIN(window->props.selfDir, SOURCE_PATH::M1, "Tema2", "shaders", "VertexShader.glsl"), GL_VERTEX_SHADER);
-        shader->AddShader(PATH_JOIN(window->props.selfDir, SOURCE_PATH::M1, "Tema2", "shaders", "FragmentShader.glsl"), GL_FRAGMENT_SHADER);
+        shader->AddShader(PATH_JOIN(window->props.selfDir, SOURCE_PATH::M1, "Tema2", "shaders", "VertexShaderTerrain.glsl"), GL_VERTEX_SHADER);
+        shader->AddShader(PATH_JOIN(window->props.selfDir, SOURCE_PATH::M1, "Tema2", "shaders", "FragmentShaderTerrain.glsl"), GL_FRAGMENT_SHADER);
+        shader->CreateAndLink();
+        shaders[shader->GetName()] = shader;
+    }
+
+    {
+        Shader* shader = new Shader("DroneShader");
+        shader->AddShader(PATH_JOIN(window->props.selfDir, SOURCE_PATH::M1, "Tema2", "shaders", "VertexShaderDrone.glsl"), GL_VERTEX_SHADER);
+        shader->AddShader(PATH_JOIN(window->props.selfDir, SOURCE_PATH::M1, "Tema2", "shaders", "FragmentShaderDrone.glsl"), GL_FRAGMENT_SHADER);
         shader->CreateAndLink();
         shaders[shader->GetName()] = shader;
     }
@@ -59,13 +78,20 @@ void Tema2::Update(float deltaTimeSeconds)
 {
     {
         glm::mat4 modelMatrix = glm::mat4(1);
-        //modelMatrix = glm::translate(modelMatrix, glm::vec3(0, 1, 0));
-        //modelMatrix = glm::rotate(modelMatrix, RADIANS(45.0f), glm::vec3(0, 1, 0));
-        RenderMesh(meshes["pat_A"], shaders["TerrainShader"],modelMatrix);
+        RenderMesh(meshes["terrain"], shaders["TerrainShader"],modelMatrix);
     }
 
-    // Render the camera target. This is useful for understanding where
-    // the rotation point is, when moving in third-person camera mode.
+    {
+        glm::mat4 modelMatrix = glm::mat4(1);
+        //modelMatrix = glm::translate(modelMatrix, camera->GetTargetPosition());
+        RenderMesh(meshes["droneP1"], shaders["DroneShader"], modelMatrix);
+        RenderMesh(meshes["droneP2"], shaders["DroneShader"], modelMatrix);
+        RenderMesh(meshes["droneC1"], shaders["DroneShader"], modelMatrix);
+        RenderMesh(meshes["droneC2"], shaders["DroneShader"], modelMatrix);
+        RenderMesh(meshes["droneC3"], shaders["DroneShader"], modelMatrix);
+        RenderMesh(meshes["droneC4"], shaders["DroneShader"], modelMatrix);
+    }
+
     if (renderCameraTarget)
     {
         glm::mat4 modelMatrix = glm::mat4(1);
@@ -98,7 +124,7 @@ void Tema2::CreateMesh(const char* name, const std::vector<VertexFormat>& vertic
 
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(VertexFormat), (void*)(sizeof(glm::vec3)));
-    
+
     glBindVertexArray(0);
 
     CheckOpenGLError();
@@ -107,7 +133,6 @@ void Tema2::CreateMesh(const char* name, const std::vector<VertexFormat>& vertic
     meshes[name]->InitFromBuffer(VAO, static_cast<unsigned int>(indices.size()));
     meshes[name]->vertices = vertices;
     meshes[name]->indices = indices;
-    //return meshes[name];
 }
 
 void Tema2::RenderMesh(Mesh* mesh, Shader* shader, const glm::mat4& modelMatrix)
@@ -115,21 +140,27 @@ void Tema2::RenderMesh(Mesh* mesh, Shader* shader, const glm::mat4& modelMatrix)
     if (!mesh || !shader || !shader->program)
         return;
 
-    // Render an object using the specified shader and the specified position
-
     glUseProgram(shader->program);
     glUniformMatrix4fv(shader->loc_view_matrix, 1, GL_FALSE, glm::value_ptr(camera->GetViewMatrix()));
     glUniformMatrix4fv(shader->loc_projection_matrix, 1, GL_FALSE, glm::value_ptr(projectionMatrix));
     glUniformMatrix4fv(shader->loc_model_matrix, 1, GL_FALSE, glm::value_ptr(modelMatrix));
 
-    auto frecvLoc = glGetUniformLocation(shader->GetProgramID(), "frecv");
-    glUniform1f(frecvLoc, 0.5f);
+    if (!strcmp(shader->GetName(),"TerrainShader")) {
 
-    GLint color1Loc = glGetUniformLocation(shader->GetProgramID(), "color1");
-    glUniform3f(color1Loc, 0.09f, 0.43f, 0.14f);
+        auto frecvLoc = glGetUniformLocation(shader->GetProgramID(), "frecv");
+        glUniform1f(frecvLoc, 0.5f);
 
-    GLint color2Loc = glGetUniformLocation(shader->GetProgramID(), "color2");
-    glUniform3f(color2Loc, 0.45f, 0.29f, 0.09f);
+        auto color1Loc = glGetUniformLocation(shader->GetProgramID(), "color1");
+        glUniform3f(color1Loc, 0.09f, 0.43f, 0.14f);
+
+        auto color2Loc = glGetUniformLocation(shader->GetProgramID(), "color2");
+        glUniform3f(color2Loc, 0.45f, 0.29f, 0.09f);
+    }
+
+    if (!strcmp(shader->GetName(), "DroneShader")) {
+        auto droneColorLoc = glGetUniformLocation(shader->GetProgramID(), "droneCol");
+        glUniform3f(droneColorLoc, 0.6f, 0.65f, 0.65);
+    }
 
     mesh->Render();
 }
