@@ -1,6 +1,4 @@
 #include "lab_m1/Tema2/Tema2.h"
-#include "lab_m1/Tema2/Terrain.h"
-#include "lab_m1/Tema2/Drone.h"
 
 #include <vector>
 #include <string>
@@ -33,18 +31,17 @@ void Tema2::Init()
 
     projectionMatrix = glm::perspective(fov, window->props.aspectRatio, 0.01f, 200.0f);
 
-    Terrain* terrain = new Terrain(24, 24);
     terrain->createTerrain();
     CreateMesh("terrain", terrain->vertices, terrain->indices);
 
-    Drone* drone = new Drone();
     drone->createDrone();
-    CreateMesh("droneP1", drone->verticesP1, drone->indicesP1);
-    CreateMesh("droneP2", drone->verticesP2, drone->indicesP2);
-    CreateMesh("droneC1", drone->verticesC1, drone->indicesC1);
-    CreateMesh("droneC2", drone->verticesC2, drone->indicesC2);
-    CreateMesh("droneC3", drone->verticesC3, drone->indicesC3);
-    CreateMesh("droneC4", drone->verticesC4, drone->indicesC4);
+    CreateMesh("droneP1", drone->verticesP1, drone->indices);
+    CreateMesh("droneP2", drone->verticesP2, drone->indices);
+    CreateMesh("droneC1", drone->verticesC1, drone->indices);
+    CreateMesh("droneC2", drone->verticesC2, drone->indices);
+    CreateMesh("droneC3", drone->verticesC3, drone->indices);
+    CreateMesh("droneC4", drone->verticesC4, drone->indices);
+    CreateMesh("droneE1", drone->verticesE1, drone->indices);
 
     {
         Shader* shader = new Shader("TerrainShader");
@@ -81,16 +78,7 @@ void Tema2::Update(float deltaTimeSeconds)
         RenderMesh(meshes["terrain"], shaders["TerrainShader"],modelMatrix);
     }
 
-    {
-        glm::mat4 modelMatrix = glm::mat4(1);
-        //modelMatrix = glm::translate(modelMatrix, camera->GetTargetPosition());
-        RenderMesh(meshes["droneP1"], shaders["DroneShader"], modelMatrix);
-        RenderMesh(meshes["droneP2"], shaders["DroneShader"], modelMatrix);
-        RenderMesh(meshes["droneC1"], shaders["DroneShader"], modelMatrix);
-        RenderMesh(meshes["droneC2"], shaders["DroneShader"], modelMatrix);
-        RenderMesh(meshes["droneC3"], shaders["DroneShader"], modelMatrix);
-        RenderMesh(meshes["droneC4"], shaders["DroneShader"], modelMatrix);
-    }
+    RenderDrone(deltaTimeSeconds);
 
     if (renderCameraTarget)
     {
@@ -98,6 +86,41 @@ void Tema2::Update(float deltaTimeSeconds)
         modelMatrix = glm::translate(modelMatrix, camera->GetTargetPosition());
         modelMatrix = glm::scale(modelMatrix, glm::vec3(0.1f));
         RenderMesh(meshes["sphere"], shaders["VertexNormal"], modelMatrix);
+    }
+}
+
+void Tema2::RenderDrone(float deltaTime) {
+    {
+        glm::mat4 modelMatrix = glm::mat4(1);
+        modelMatrix = glm::translate(modelMatrix, camera->GetTargetPosition());
+        RenderMesh(meshes["droneP1"], shaders["DroneShader"], modelMatrix);
+        RenderMesh(meshes["droneP2"], shaders["DroneShader"], modelMatrix);
+        RenderMesh(meshes["droneC1"], shaders["DroneShader"], modelMatrix);
+        RenderMesh(meshes["droneC2"], shaders["DroneShader"], modelMatrix);
+        RenderMesh(meshes["droneC3"], shaders["DroneShader"], modelMatrix);
+        RenderMesh(meshes["droneC4"], shaders["DroneShader"], modelMatrix);
+
+        propellerRotation += deltaTime * 10.0f;
+
+        glm::mat4 propellerMatrix1 = modelMatrix;
+        propellerMatrix1 *= transform::Translate(drone->offsetXZ, drone->offsetY, 0);
+        propellerMatrix1 *= transform::RotateOY(propellerRotation);
+        RenderMesh(meshes["droneE1"], shaders["DroneShader"], propellerMatrix1);
+
+        glm::mat4 propellerMatrix2 = modelMatrix;
+        propellerMatrix2 *= transform::Translate(-drone->offsetXZ, drone->offsetY, 0);
+        propellerMatrix2 *= transform::RotateOY(propellerRotation);
+        RenderMesh(meshes["droneE1"], shaders["DroneShader"], propellerMatrix2);
+
+        glm::mat4 propellerMatrix3 = modelMatrix;
+        propellerMatrix3 *= transform::Translate(0, drone->offsetY, drone->offsetXZ);
+        propellerMatrix3 *= transform::RotateOY(propellerRotation);
+        RenderMesh(meshes["droneE1"], shaders["DroneShader"], propellerMatrix3);
+
+        glm::mat4 propellerMatrix4 = modelMatrix;
+        propellerMatrix4 *= transform::Translate(0, drone->offsetY, -drone->offsetXZ);
+        propellerMatrix4 *= transform::RotateOY(propellerRotation);
+        RenderMesh(meshes["droneE1"], shaders["DroneShader"], propellerMatrix4);
     }
 }
 
@@ -124,6 +147,12 @@ void Tema2::CreateMesh(const char* name, const std::vector<VertexFormat>& vertic
 
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(VertexFormat), (void*)(sizeof(glm::vec3)));
+
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(VertexFormat), (void*)(2 * sizeof(glm::vec3)));
+
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(VertexFormat), (void*)(2 * sizeof(glm::vec3) + sizeof(glm::vec2)));
 
     glBindVertexArray(0);
 
@@ -157,10 +186,10 @@ void Tema2::RenderMesh(Mesh* mesh, Shader* shader, const glm::mat4& modelMatrix)
         glUniform3f(color2Loc, 0.45f, 0.29f, 0.09f);
     }
 
-    if (!strcmp(shader->GetName(), "DroneShader")) {
+    /*if (!strcmp(shader->GetName(), "DroneShader")) {
         auto droneColorLoc = glGetUniformLocation(shader->GetProgramID(), "droneCol");
-        glUniform3f(droneColorLoc, 0.6f, 0.65f, 0.65);
-    }
+        glUniform3f(droneColorLoc, 0.6f, 0.65f, 0.65f);
+    }*/
 
     mesh->Render();
 }

@@ -3,6 +3,8 @@
 #include "components/simple_scene.h"
 #include "lab_m1/Tema2/camera.h"
 #include "lab_m1/Tema2/Terrain.h"
+#include "lab_m1/Tema2/Drone.h"
+#include "lab_m1/Tema2/transform.h"
 
 
 
@@ -32,6 +34,7 @@ namespace m1
         void OnMouseBtnRelease(int mouseX, int mouseY, int button, int mods) override;
         void OnMouseScroll(int mouseX, int mouseY, int offsetX, int offsetY) override;
         void OnWindowResize(int width, int height) override;
+        void RenderDrone(float deltaTime);
 
     protected:
         implemented::Camera_H* camera;
@@ -43,5 +46,9 @@ namespace m1
         float y = 10;
         float l = -10.0f;
         float r = 10.0f;
+        float propellerRotation = 0;
+
+        Drone* drone = new Drone();
+        Terrain* terrain = new Terrain(24, 24);
 	};
 }

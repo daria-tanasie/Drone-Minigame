@@ -1,8 +1,6 @@
 #pragma once
 
-#include "lab_m1/Tema2/Tema2.h"
 #include "components/simple_scene.h"
-#include "lab_m1/Tema2/Terrain.h"
 #include <vector>
 
 namespace m1
@@ -14,22 +12,20 @@ namespace m1
 		void Drone::createDrone();
 
 		std::vector<VertexFormat> verticesP1;
-		std::vector<unsigned int> indicesP1;
 
 		std::vector<VertexFormat> verticesP2;
-		std::vector<unsigned int> indicesP2;
-
 		std::vector<VertexFormat> verticesC1;
-		std::vector<unsigned int> indicesC1;
-
 		std::vector<VertexFormat> verticesC2;
-		std::vector<unsigned int> indicesC2;
-
 		std::vector<VertexFormat> verticesC3;
-		std::vector<unsigned int> indicesC3;
-
 		std::vector<VertexFormat> verticesC4;
-		std::vector<unsigned int> indicesC4;
+		std::vector<VertexFormat> verticesE1;
+		std::vector<VertexFormat> verticesE2;
+		std::vector<VertexFormat> verticesE3;
+		std::vector<VertexFormat> verticesE4;
+
+		std::vector<unsigned int> indices;
+
+		float offsetXZ = 0.8, offsetY = 0.31;
 
 
 		Drone() {}

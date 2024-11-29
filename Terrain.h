@@ -1,9 +1,7 @@
 #pragma once
 
-#include "lab_m1/Tema2/Tema2.h"
 #include "components/simple_scene.h"
 #include <vector>
-
 
 namespace m1
 {
@@ -11,13 +9,15 @@ namespace m1
 	{
 	public:
 
-		void Terrain::createTerrain();
+		void createTerrain();
 
 		int len, width;
 		std::vector<VertexFormat> vertices;
 		std::vector<unsigned int> indices;
 
-		Terrain(int n, int m)
-			: len(n), width(m) {}
+		Terrain(int n, int m) {
+			len = n;
+			width = m;
+		}
 	};
 }
