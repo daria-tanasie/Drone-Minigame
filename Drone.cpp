@@ -7,7 +7,7 @@ using namespace m1;
 
 void Drone::createDrone() {
     verticesP1 =
-    {   // x e latime aici
+    {   // paralelipiped
         VertexFormat(glm::vec3(-0.1, -0.1,  0.9), glm::vec3(0.6f, 0.65f, 0.65f)),
         VertexFormat(glm::vec3(0.1, -0.1,  0.9), glm::vec3(0.6f, 0.65f, 0.65f)),
         VertexFormat(glm::vec3(-0.1,  0.1,  0.9), glm::vec3(0.6f, 0.65f, 0.65f)),
@@ -18,78 +18,20 @@ void Drone::createDrone() {
         VertexFormat(glm::vec3(0.1,  0.1, -0.9), glm::vec3(0.6f, 0.65f, 0.65f)),
     };
 
-    indices =
-    {
-        0, 1, 2,        1, 3, 2,
-        2, 3, 7,        2, 7, 6,
-        1, 7, 3,        1, 5, 7,
-        6, 7, 4,        7, 5, 4,
-        0, 4, 1,        1, 4, 5,
-        2, 6, 4,        0, 2, 4,
-    };
-
-    verticesP2 =
-    {   // z e latime aici
-        VertexFormat(glm::vec3(-0.9, -0.1,  0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(0.9, -0.1,  0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(-0.9,  0.1,  0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(0.9,  0.1,  0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(-0.9, -0.1, -0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(0.9, -0.1, -0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(-0.9,  0.1, -0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(0.9,  0.1, -0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-    };
-
     verticesC1 =
-    {   // cub de pe aripa dreapta cu z latime
-        VertexFormat(glm::vec3(0.7, 0.1,  0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(0.9, 0.1,  0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(0.7,  0.3,  0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(0.9,  0.3,  0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(0.7, 0.1, -0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(0.9, 0.1, -0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(0.7,  0.3, -0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(0.9,  0.3, -0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-    };
-
-    verticesC2 =
-    {   // cub de pe aripa stanga cu z latime
-        VertexFormat(glm::vec3(-0.7, 0.1,  0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(-0.9, 0.1,  0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(-0.7,  0.3,  0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(-0.9,  0.3,  0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(-0.7, 0.1, -0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(-0.9, 0.1, -0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(-0.7,  0.3, -0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(-0.9,  0.3, -0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
-    };
-
-    verticesC3 =
-    {   // cub de pe aripa fata cu x latime
-        VertexFormat(glm::vec3(0.1, 0.1,  -0.7), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(0.1, 0.1,  -0.9), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(0.1,  0.3,  -0.7), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(0.1,  0.3,  -0.9), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(-0.1, 0.1, -0.7), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(-0.1, 0.1, -0.9), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(-0.1,  0.3, -0.7), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(-0.1,  0.3, -0.9), glm::vec3(0.6f, 0.65f, 0.65f)),
-    };
-
-    verticesC4 =
-    {   // cub de pe aripa spate cu x latime
-         VertexFormat(glm::vec3(0.1, 0.1, 0.7), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(0.1, 0.1, 0.9), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(0.1,  0.3, 0.7), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(0.1,  0.3, 0.9), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(-0.1, 0.1, 0.7), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(-0.1, 0.1, 0.9), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(-0.1,  0.3, 0.7), glm::vec3(0.6f, 0.65f, 0.65f)),
-        VertexFormat(glm::vec3(-0.1,  0.3, 0.9), glm::vec3(0.6f, 0.65f, 0.65f)),
+    {   // cub aripa
+        VertexFormat(glm::vec3(-0.1, -0.1,  0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
+        VertexFormat(glm::vec3(0.1, -0.1,  0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
+        VertexFormat(glm::vec3(-0.1, 0.1,  0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
+        VertexFormat(glm::vec3(0.1, 0.1,  0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
+        VertexFormat(glm::vec3(-0.1, -0.1, -0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
+        VertexFormat(glm::vec3(0.1, -0.1, -0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
+        VertexFormat(glm::vec3(-0.1, 0.1, -0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
+        VertexFormat(glm::vec3(0.1, 0.1, -0.1), glm::vec3(0.6f, 0.65f, 0.65f)),
     };
 
     verticesE1 =
-    {
+    {   // elice
         VertexFormat(glm::vec3(-0.3, -0.01, 0.01), glm::vec3(0, 0, 0)),
         VertexFormat(glm::vec3(0.3, -0.01, 0.01), glm::vec3(0, 0, 0)),
         VertexFormat(glm::vec3(-0.3, 0.01, 0.01), glm::vec3(0, 0, 0)),
@@ -98,5 +40,15 @@ void Drone::createDrone() {
         VertexFormat(glm::vec3(0.3, -0.01, -0.01), glm::vec3(0, 0, 0)),
         VertexFormat(glm::vec3(-0.3, 0.01, -0.01), glm::vec3(0, 0, 0)),
         VertexFormat(glm::vec3(0.3, 0.01, -0.01), glm::vec3(0, 0, 0)),
+    };
+
+    indices =
+    {
+        0, 1, 2,        1, 3, 2,
+        2, 3, 7,        2, 7, 6,
+        1, 7, 3,        1, 5, 7,
+        6, 7, 4,        7, 5, 4,
+        0, 4, 1,        1, 4, 5,
+        2, 6, 4,        0, 2, 4,
     };
 }

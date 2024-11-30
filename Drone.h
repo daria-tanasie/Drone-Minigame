@@ -25,7 +25,8 @@ namespace m1
 
 		std::vector<unsigned int> indices;
 
-		float offsetXZ = 0.8, offsetY = 0.31;
+		float offsetXZProp = 0.8, offsetYProp = 0.31;
+		float offsetXZC = 0.8, offsetYC = 0.2;
 
 
 		Drone() {}

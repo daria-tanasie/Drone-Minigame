@@ -20,7 +20,7 @@ void Tema2::Init()
     renderCameraTarget = false;
 
     camera = new implemented::Camera_H();
-    camera->Set(glm::vec3(0, 2, 3.5f), glm::vec3(0, 1, 0), glm::vec3(0, 1, 0));
+    camera->Set(glm::vec3(0, 1, 2.5f), glm::vec3(0, 1, 0), glm::vec3(0, 1, 0));
 
     {
         Mesh* mesh = new Mesh("sphere");
@@ -36,11 +36,7 @@ void Tema2::Init()
 
     drone->createDrone();
     CreateMesh("droneP1", drone->verticesP1, drone->indices);
-    CreateMesh("droneP2", drone->verticesP2, drone->indices);
     CreateMesh("droneC1", drone->verticesC1, drone->indices);
-    CreateMesh("droneC2", drone->verticesC2, drone->indices);
-    CreateMesh("droneC3", drone->verticesC3, drone->indices);
-    CreateMesh("droneC4", drone->verticesC4, drone->indices);
     CreateMesh("droneE1", drone->verticesE1, drone->indices);
 
     {
@@ -80,45 +76,73 @@ void Tema2::Update(float deltaTimeSeconds)
 
     RenderDrone(deltaTimeSeconds);
 
-    if (renderCameraTarget)
+   /* if (renderCameraTarget)
     {
         glm::mat4 modelMatrix = glm::mat4(1);
         modelMatrix = glm::translate(modelMatrix, camera->GetTargetPosition());
         modelMatrix = glm::scale(modelMatrix, glm::vec3(0.1f));
         RenderMesh(meshes["sphere"], shaders["VertexNormal"], modelMatrix);
-    }
+    }*/
 }
 
 void Tema2::RenderDrone(float deltaTime) {
     {
         glm::mat4 modelMatrix = glm::mat4(1);
-        modelMatrix = glm::translate(modelMatrix, camera->GetTargetPosition());
-        RenderMesh(meshes["droneP1"], shaders["DroneShader"], modelMatrix);
-        RenderMesh(meshes["droneP2"], shaders["DroneShader"], modelMatrix);
-        RenderMesh(meshes["droneC1"], shaders["DroneShader"], modelMatrix);
-        RenderMesh(meshes["droneC2"], shaders["DroneShader"], modelMatrix);
-        RenderMesh(meshes["droneC3"], shaders["DroneShader"], modelMatrix);
-        RenderMesh(meshes["droneC4"], shaders["DroneShader"], modelMatrix);
+        //modelMatrix = glm::translate(modelMatrix, camera->GetTargetPosition());
+
+        glm::mat4 paralMatrix1 = modelMatrix;
+        paralMatrix1 *= transform::RotateOY(RADIANS(45));
+        RenderMesh(meshes["droneP1"], shaders["DroneShader"], paralMatrix1);
+
+        glm::mat4 paralMatrix2 = modelMatrix;
+        paralMatrix2 *= transform::RotateOY(RADIANS(-45));
+        RenderMesh(meshes["droneP1"], shaders["DroneShader"], paralMatrix2);
+
+        glm::mat4 cubeMatrix1 = modelMatrix;
+        cubeMatrix1 *= transform::RotateOY(RADIANS(45));
+        cubeMatrix1 *= transform::Translate(drone->offsetXZC, drone->offsetYC, 0);
+        RenderMesh(meshes["droneC1"], shaders["DroneShader"], cubeMatrix1);
+
+        glm::mat4 cubeMatrix2 = modelMatrix;
+        cubeMatrix2 *= transform::RotateOY(RADIANS(45));
+        cubeMatrix2 *= transform::Translate(-drone->offsetXZC, drone->offsetYC, 0);
+        RenderMesh(meshes["droneC1"], shaders["DroneShader"], cubeMatrix2);
+
+        glm::mat4 cubeMatrix3 = modelMatrix;
+        cubeMatrix3 *= transform::RotateOY(RADIANS(45));
+        cubeMatrix3 *= transform::Translate(0, drone->offsetYC, drone->offsetXZC);
+        RenderMesh(meshes["droneC1"], shaders["DroneShader"], cubeMatrix3);
+
+        glm::mat4 cubeMatrix4 = modelMatrix;
+        cubeMatrix4 *= transform::RotateOY(RADIANS(45));
+        cubeMatrix4 *= transform::Translate(0, drone->offsetYC, -drone->offsetXZC);
+        RenderMesh(meshes["droneC1"], shaders["DroneShader"], cubeMatrix4);
 
         propellerRotation += deltaTime * 10.0f;
 
         glm::mat4 propellerMatrix1 = modelMatrix;
-        propellerMatrix1 *= transform::Translate(drone->offsetXZ, drone->offsetY, 0);
+        propellerMatrix1 *= transform::RotateOY(RADIANS(45));
+        propellerMatrix1 *= transform::Translate(drone->offsetXZProp, drone->offsetYProp, 0);
         propellerMatrix1 *= transform::RotateOY(propellerRotation);
+        
         RenderMesh(meshes["droneE1"], shaders["DroneShader"], propellerMatrix1);
 
         glm::mat4 propellerMatrix2 = modelMatrix;
-        propellerMatrix2 *= transform::Translate(-drone->offsetXZ, drone->offsetY, 0);
+        propellerMatrix2 *= transform::RotateOY(RADIANS(45));
+        propellerMatrix2 *= transform::Translate(-drone->offsetXZProp, drone->offsetYProp, 0);
         propellerMatrix2 *= transform::RotateOY(propellerRotation);
+
         RenderMesh(meshes["droneE1"], shaders["DroneShader"], propellerMatrix2);
 
         glm::mat4 propellerMatrix3 = modelMatrix;
-        propellerMatrix3 *= transform::Translate(0, drone->offsetY, drone->offsetXZ);
+        propellerMatrix3 *= transform::RotateOY(RADIANS(45));
+        propellerMatrix3 *= transform::Translate(0, drone->offsetYProp, drone->offsetXZProp);
         propellerMatrix3 *= transform::RotateOY(propellerRotation);
         RenderMesh(meshes["droneE1"], shaders["DroneShader"], propellerMatrix3);
 
         glm::mat4 propellerMatrix4 = modelMatrix;
-        propellerMatrix4 *= transform::Translate(0, drone->offsetY, -drone->offsetXZ);
+        propellerMatrix4 *= transform::RotateOY(RADIANS(45));
+        propellerMatrix4 *= transform::Translate(0, drone->offsetYProp, -drone->offsetXZProp);
         propellerMatrix4 *= transform::RotateOY(propellerRotation);
         RenderMesh(meshes["droneE1"], shaders["DroneShader"], propellerMatrix4);
     }
@@ -186,11 +210,6 @@ void Tema2::RenderMesh(Mesh* mesh, Shader* shader, const glm::mat4& modelMatrix)
         glUniform3f(color2Loc, 0.45f, 0.29f, 0.09f);
     }
 
-    /*if (!strcmp(shader->GetName(), "DroneShader")) {
-        auto droneColorLoc = glGetUniformLocation(shader->GetProgramID(), "droneCol");
-        glUniform3f(droneColorLoc, 0.6f, 0.65f, 0.65f);
-    }*/
-
     mesh->Render();
 }
 
@@ -203,11 +222,11 @@ void Tema2::OnInputUpdate(float deltaTime, int mods)
 {
     if (window->MouseHold(GLFW_MOUSE_BUTTON_RIGHT))
     {
-        float cameraSpeed = 2.0f;
-
+        float cameraSpeed = 5.0f;
+        // de facut toate cu move
         if (window->KeyHold(GLFW_KEY_W)) {
             // Translate the camera forward
-            camera->TranslateForward(cameraSpeed * deltaTime);
+            camera->MoveForward(cameraSpeed * deltaTime);
         }
 
         if (window->KeyHold(GLFW_KEY_A)) {

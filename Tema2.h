@@ -48,6 +48,8 @@ namespace m1
         float r = 10.0f;
         float propellerRotation = 0;
 
+        //glm::mat4 modelMatrix = glm::mat4(1);
+
         Drone* drone = new Drone();
         Terrain* terrain = new Terrain(24, 24);
 	};
