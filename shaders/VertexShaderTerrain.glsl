@@ -10,7 +10,9 @@ uniform float frecv;
 uniform vec3 color1;
 uniform vec3 color2;
 
-out vec3 frag_color;
+out vec3 col1;
+out vec3 col2;
+out float noise_col;
 
 float random (in vec2 st) {
     return fract(sin(dot(st.xy,
@@ -39,5 +41,8 @@ void main()
 	vec2 xzPosition = vec2(v_pos.x, v_pos.z) * frecv;
     float newPos = noise(xzPosition);
     gl_Position = Projection * View * Model * vec4(v_pos.x,newPos , v_pos.z, 1.0);
-    frag_color = mix(color2, color1, newPos);
+    col1 = color1;
+    col2 = color2;
+    noise_col = newPos;
+    //frag_color = mix(color2, color1, newPos);
 }

@@ -20,7 +20,7 @@ void Tema2::Init()
     renderCameraTarget = false;
 
     camera = new implemented::Camera_H();
-    camera->Set(glm::vec3(0, 1, 2.5f), glm::vec3(0, 1, 0), glm::vec3(0, 1, 0));
+    camera->Set(glm::vec3(0, 3, 3.5f), glm::vec3(0, 1, 0), glm::vec3(0, 1, 0));
 
     {
         Mesh* mesh = new Mesh("sphere");
@@ -59,13 +59,12 @@ void Tema2::Init()
 
 void Tema2::FrameStart()
 {
-    glClearColor(0, 0, 0, 1);
+    glClearColor(0.14f, 0.89f, 0.9f, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glm::ivec2 resolution = window->GetResolution();
     glViewport(0, 0, resolution.x, resolution.y);
 }
-
 
 void Tema2::Update(float deltaTimeSeconds)
 {
@@ -269,12 +268,12 @@ void Tema2::OnInputUpdate(float deltaTime, int mods)
             camera->TranslateUpward(cameraSpeed * deltaTime);
         }
 
-        if (window->KeyHold(GLFW_KEY_L)) {
+        if (window->KeyHold(GLFW_KEY_C)) {
             drone->angle += deltaTime * RADIANS(50);
             camera->RotateThirdPerson_OY(RADIANS(50) * deltaTime);
         }
 
-        if (window->KeyHold(GLFW_KEY_K)) {
+        if (window->KeyHold(GLFW_KEY_X)) {
             drone->angle += deltaTime * -RADIANS(50);
             camera->RotateThirdPerson_OY(-RADIANS(50) * deltaTime);
         }

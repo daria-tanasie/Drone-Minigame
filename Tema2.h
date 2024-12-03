@@ -51,6 +51,6 @@ namespace m1
         //glm::mat4 modelMatrix = glm::mat4(1);
 
         Drone* drone = new Drone();
-        Terrain* terrain = new Terrain(27, 27);
+        Terrain* terrain = new Terrain(28, 28);
 	};
 }
