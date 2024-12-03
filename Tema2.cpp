@@ -70,8 +70,15 @@ void Tema2::FrameStart()
 void Tema2::Update(float deltaTimeSeconds)
 {
     {
-        glm::mat4 modelMatrix = glm::mat4(1);
-        RenderMesh(meshes["terrain"], shaders["TerrainShader"],modelMatrix);
+        glm::mat4 terrainMatrix = glm::mat4(1);
+        RenderMesh(meshes["terrain"], shaders["TerrainShader"], terrainMatrix);
+        terrainMatrix *= transform::Translate(-25, 0, -25);
+        RenderMesh(meshes["terrain"], shaders["TerrainShader"], terrainMatrix);
+        terrainMatrix *= transform::Translate(25, 0, 0);
+        RenderMesh(meshes["terrain"], shaders["TerrainShader"], terrainMatrix);
+        terrainMatrix = glm::mat4(1);
+        terrainMatrix *= transform::Translate(-25, 0, 0);
+        RenderMesh(meshes["terrain"], shaders["TerrainShader"], terrainMatrix);
     }
 
     RenderDrone(deltaTimeSeconds);
@@ -88,33 +95,42 @@ void Tema2::Update(float deltaTimeSeconds)
 void Tema2::RenderDrone(float deltaTime) {
     {
         glm::mat4 modelMatrix = glm::mat4(1);
-        //modelMatrix = glm::translate(modelMatrix, camera->GetTargetPosition());
+
+        
+        //modelMatrix *= transform::RotateOY(drone->angle);
+        modelMatrix = glm::translate(modelMatrix, camera->GetTargetPosition());
 
         glm::mat4 paralMatrix1 = modelMatrix;
         paralMatrix1 *= transform::RotateOY(RADIANS(45));
+        paralMatrix1 *= transform::RotateOY(drone->angle);
         RenderMesh(meshes["droneP1"], shaders["DroneShader"], paralMatrix1);
 
         glm::mat4 paralMatrix2 = modelMatrix;
         paralMatrix2 *= transform::RotateOY(RADIANS(-45));
+        paralMatrix2 *= transform::RotateOY(drone->angle);
         RenderMesh(meshes["droneP1"], shaders["DroneShader"], paralMatrix2);
 
         glm::mat4 cubeMatrix1 = modelMatrix;
         cubeMatrix1 *= transform::RotateOY(RADIANS(45));
+        cubeMatrix1 *= transform::RotateOY(drone->angle);
         cubeMatrix1 *= transform::Translate(drone->offsetXZC, drone->offsetYC, 0);
         RenderMesh(meshes["droneC1"], shaders["DroneShader"], cubeMatrix1);
 
         glm::mat4 cubeMatrix2 = modelMatrix;
         cubeMatrix2 *= transform::RotateOY(RADIANS(45));
+        cubeMatrix2 *= transform::RotateOY(drone->angle);
         cubeMatrix2 *= transform::Translate(-drone->offsetXZC, drone->offsetYC, 0);
         RenderMesh(meshes["droneC1"], shaders["DroneShader"], cubeMatrix2);
 
         glm::mat4 cubeMatrix3 = modelMatrix;
         cubeMatrix3 *= transform::RotateOY(RADIANS(45));
+        cubeMatrix3 *= transform::RotateOY(drone->angle);
         cubeMatrix3 *= transform::Translate(0, drone->offsetYC, drone->offsetXZC);
         RenderMesh(meshes["droneC1"], shaders["DroneShader"], cubeMatrix3);
 
         glm::mat4 cubeMatrix4 = modelMatrix;
         cubeMatrix4 *= transform::RotateOY(RADIANS(45));
+        cubeMatrix4 *= transform::RotateOY(drone->angle);
         cubeMatrix4 *= transform::Translate(0, drone->offsetYC, -drone->offsetXZC);
         RenderMesh(meshes["droneC1"], shaders["DroneShader"], cubeMatrix4);
 
@@ -122,29 +138,33 @@ void Tema2::RenderDrone(float deltaTime) {
 
         glm::mat4 propellerMatrix1 = modelMatrix;
         propellerMatrix1 *= transform::RotateOY(RADIANS(45));
+        propellerMatrix1 *= transform::RotateOY(drone->angle);
         propellerMatrix1 *= transform::Translate(drone->offsetXZProp, drone->offsetYProp, 0);
         propellerMatrix1 *= transform::RotateOY(propellerRotation);
-        
         RenderMesh(meshes["droneE1"], shaders["DroneShader"], propellerMatrix1);
 
         glm::mat4 propellerMatrix2 = modelMatrix;
         propellerMatrix2 *= transform::RotateOY(RADIANS(45));
+        propellerMatrix2 *= transform::RotateOY(drone->angle);
         propellerMatrix2 *= transform::Translate(-drone->offsetXZProp, drone->offsetYProp, 0);
         propellerMatrix2 *= transform::RotateOY(propellerRotation);
-
+        
         RenderMesh(meshes["droneE1"], shaders["DroneShader"], propellerMatrix2);
 
         glm::mat4 propellerMatrix3 = modelMatrix;
         propellerMatrix3 *= transform::RotateOY(RADIANS(45));
+        propellerMatrix3 *= transform::RotateOY(drone->angle);
         propellerMatrix3 *= transform::Translate(0, drone->offsetYProp, drone->offsetXZProp);
         propellerMatrix3 *= transform::RotateOY(propellerRotation);
         RenderMesh(meshes["droneE1"], shaders["DroneShader"], propellerMatrix3);
 
         glm::mat4 propellerMatrix4 = modelMatrix;
         propellerMatrix4 *= transform::RotateOY(RADIANS(45));
+        propellerMatrix4 *= transform::RotateOY(drone->angle);
         propellerMatrix4 *= transform::Translate(0, drone->offsetYProp, -drone->offsetXZProp);
         propellerMatrix4 *= transform::RotateOY(propellerRotation);
         RenderMesh(meshes["droneE1"], shaders["DroneShader"], propellerMatrix4);
+        
     }
 }
 
@@ -207,7 +227,7 @@ void Tema2::RenderMesh(Mesh* mesh, Shader* shader, const glm::mat4& modelMatrix)
         glUniform3f(color1Loc, 0.09f, 0.43f, 0.14f);
 
         auto color2Loc = glGetUniformLocation(shader->GetProgramID(), "color2");
-        glUniform3f(color2Loc, 0.45f, 0.29f, 0.09f);
+        glUniform3f(color2Loc, 0.09f, 0.31f, 0.07f);
     }
 
     mesh->Render();
@@ -220,40 +240,45 @@ void Tema2::FrameEnd()
 
 void Tema2::OnInputUpdate(float deltaTime, int mods)
 {
-    if (window->MouseHold(GLFW_MOUSE_BUTTON_RIGHT))
-    {
+    //if (window->MouseHold(GLFW_MOUSE_BUTTON_RIGHT))
+    //{
         float cameraSpeed = 5.0f;
-        // de facut toate cu move
         if (window->KeyHold(GLFW_KEY_W)) {
-            // Translate the camera forward
             camera->MoveForward(cameraSpeed * deltaTime);
         }
 
         if (window->KeyHold(GLFW_KEY_A)) {
-            // Translate the camera to the left
-            camera->TranslateRight(-(cameraSpeed * deltaTime));
+            camera->MoveRight(-(cameraSpeed * deltaTime));
         }
 
         if (window->KeyHold(GLFW_KEY_S)) {
-            // Translate the camera backward
-            camera->TranslateForward(-cameraSpeed * deltaTime);
+            //camera->TranslateForward(-cameraSpeed * deltaTime);
+            camera->MoveForward(-(cameraSpeed * deltaTime));
         }
 
         if (window->KeyHold(GLFW_KEY_D)) {
-            // Translate the camera to the right
-            camera->TranslateRight(cameraSpeed * deltaTime);
+            //camera->TranslateRight(cameraSpeed * deltaTime);
+            camera->MoveRight(cameraSpeed * deltaTime);
         }
 
         if (window->KeyHold(GLFW_KEY_Q)) {
-            // Translate the camera downward
             camera->TranslateUpward(-cameraSpeed * deltaTime);
         }
 
         if (window->KeyHold(GLFW_KEY_E)) {
-            // Translate the camera upward
             camera->TranslateUpward(cameraSpeed * deltaTime);
         }
-    }
+
+        if (window->KeyHold(GLFW_KEY_L)) {
+            drone->angle += deltaTime * RADIANS(50);
+            camera->RotateThirdPerson_OY(RADIANS(50) * deltaTime);
+        }
+
+        if (window->KeyHold(GLFW_KEY_K)) {
+            drone->angle += deltaTime * -RADIANS(50);
+            camera->RotateThirdPerson_OY(-RADIANS(50) * deltaTime);
+        }
+    //}
 
     if (window->KeyHold(GLFW_KEY_T)) {
         fov += RADIANS(5) * deltaTime;
@@ -282,13 +307,13 @@ void Tema2::OnKeyPress(int key, int mods)
     }
     // TODO(student): Switch projections
 
-    if (key == GLFW_KEY_O) {
+    /*if (key == GLFW_KEY_O) {
         projectionMatrix = glm::ortho(l, r, -10.0f, 10.0f, 0.1f, 100.0f);
     }
 
     if (key == GLFW_KEY_P) {
         projectionMatrix = glm::perspective(fov, 10.f, 0.1f, 100.0f);
-    }
+    }*/
 }
 
 
