@@ -5,6 +5,7 @@
 #include "lab_m1/Tema2/Terrain.h"
 #include "lab_m1/Tema2/Drone.h"
 #include "lab_m1/Tema2/transform.h"
+#include "lab_m1/Tema2/Obstacles.h"
 
 
 
@@ -36,10 +37,10 @@ namespace m1
         void OnWindowResize(int width, int height) override;
         void RenderDrone(float deltaTime);
 
-        void GenerateObstaclesPos();
+        //void GenerateObstaclesPos();
         void GenerateTree();
         void GenerateBuildings();
-        void CheckCollisions(float deltaTimeSeconds);
+        bool CheckCollisions(float deltaTimeSeconds);
         void RenderTerrain();
 
     protected:
@@ -54,7 +55,7 @@ namespace m1
         float r = 10.0f;
         float propellerRotation = 0;
 
-        bool underTer = false;
+        bool under = false;
 
         //glm::mat4 modelMatrix = glm::mat4(1);
 
@@ -65,5 +66,6 @@ namespace m1
 
         Drone* drone = new Drone();
         Terrain* terrain = new Terrain(40, 40);
+        Obstacles* obstacles = new Obstacles();
 	};
 }

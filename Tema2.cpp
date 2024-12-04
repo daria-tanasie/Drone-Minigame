@@ -20,7 +20,7 @@ void Tema2::Init()
     renderCameraTarget = false;
 
     camera = new implemented::Camera_H();
-    camera->Set(glm::vec3(0, 3, 3.5f), glm::vec3(0, 1, 0), glm::vec3(0, 1, 0));
+    camera->Set(glm::vec3(0, 4, 3.5f), glm::vec3(0, 1, 0), glm::vec3(0, 1, 0));
 
     {
         Mesh* mesh = new Mesh("sphere");
@@ -75,7 +75,9 @@ void Tema2::Init()
         shaders[shader->GetName()] = shader;
     }
 
-    GenerateObstaclesPos();
+   obstacles->GenerateObstaclesPos();
+   treePositions = obstacles->treePositions;
+   buildingPositions = obstacles->buildingPositions;
 }
 
 
@@ -191,25 +193,50 @@ void Tema2::OnInputUpdate(float deltaTime, int mods)
     //{
         float cameraSpeed = 5.0f;
         if (window->KeyHold(GLFW_KEY_W)) {
-            camera->MoveForward(cameraSpeed * deltaTime);
+            if (CheckCollisions(deltaTime)) {
+                camera->TranslateForward(-cameraSpeed * deltaTime);
+            }
+            else {
+                camera->MoveForward(cameraSpeed * deltaTime);
+            }
         }
 
         if (window->KeyHold(GLFW_KEY_A)) {
-            camera->MoveRight(-(cameraSpeed * deltaTime));
+            if (CheckCollisions(deltaTime)) {
+                camera->TranslateRight((cameraSpeed * deltaTime));
+            }
+            else {
+                camera->MoveRight(-(cameraSpeed * deltaTime));
+            }
         }
 
         if (window->KeyHold(GLFW_KEY_S)) {
             //camera->TranslateForward(-cameraSpeed * deltaTime);
-            camera->MoveForward(-(cameraSpeed * deltaTime));
+            //if (CheckCollisions(deltaTime)) {
+                //camera->TranslateForward((cameraSpeed * deltaTime));
+            //}
+            //else {
+                camera->MoveForward(-(cameraSpeed * deltaTime));
+            //}
         }
 
         if (window->KeyHold(GLFW_KEY_D)) {
             //camera->TranslateRight(cameraSpeed * deltaTime);
-            camera->MoveRight(cameraSpeed * deltaTime);
+            if (CheckCollisions(deltaTime)) {
+                camera->TranslateRight(-(cameraSpeed * deltaTime));
+            }
+            else {
+                camera->MoveRight(cameraSpeed * deltaTime);
+            }
         }
 
-        if (window->KeyHold(GLFW_KEY_Q) && !underTer) {
-            camera->TranslateUpward(-cameraSpeed * deltaTime);
+        if (window->KeyHold(GLFW_KEY_Q) && !under) {
+            if (CheckCollisions(deltaTime)) {
+                camera->TranslateUpward(cameraSpeed * deltaTime);
+            }
+            else {
+                camera->TranslateUpward(-cameraSpeed * deltaTime);
+            }
         }
 
         if (window->KeyHold(GLFW_KEY_E)) {
@@ -404,50 +431,6 @@ void Tema2::RenderDrone(float deltaTime) {
     }
 }
 
-void Tema2::GenerateObstaclesPos()
-{
-    for (int i = 0; i < 5; i++) {
-        glm::vec3 position = glm::vec3((rand() % 55 - 27), (rand() % 7 + 3), (rand() % 55 - 27));
-
-        if (i == 0) {
-            treePositions.push_back(position);
-        }
-
-        for (int j = 0; j < treePositions.size(); j++) {
-            if (abs(position.x - treePositions[j].x) > 7 || abs(position.z - treePositions[j].z) > 7) {
-                treePositions.push_back(position);
-            }
-            else {
-                break;
-            }
-        }
-    }
-
-    for (int i = 0; i < 3; i++) {
-        glm::vec3 position = glm::vec3((rand() % 55 - 27), 0, (rand() % 55 - 27));
-
-        for (int j = 0; j < treePositions.size(); j++) {
-            if ((abs(position.x - treePositions[j].x) > 7 || abs(position.z - treePositions[j].z) > 7)
-                && i == 0) {
-                buildingPositions.push_back(position);
-            }
-            else if ((abs(position.x - treePositions[j].x) > 7 || abs(position.z - treePositions[j].z) > 7)) {
-                for (int k = 0; k < buildingPositions.size(); k++) {
-                    if (abs(position.x - buildingPositions[k].x) > 7 || abs(position.z - buildingPositions[k].z) > 7) {
-                        buildingPositions.push_back(position);
-                    }
-                    else {
-                        break;
-                    }
-                }
-            }
-            else {
-                break;
-            }
-        }
-    }
-}
-
 void Tema2::GenerateBuildings()
 {
     for (int i = 0; i < buildingPositions.size(); i++) {
@@ -497,12 +480,43 @@ float noise(glm::vec2 st) {
     return mixed;
 }
 
-void Tema2::CheckCollisions(float deltaTimeSeconds) {
+bool Tema2::CheckCollisions(float deltaTimeSeconds) {
     if (dronePosition.y - 1.5f <= noise(glm::vec2(dronePosition.x, dronePosition.z))) {
-        underTer = true;
+        under = true;
         camera->TranslateUpward(3.0f * deltaTimeSeconds);
     }
     else {
-        underTer = false;
+        under = false;
     }
+
+    for (int i = 0; i < buildingPositions.size(); i++) {
+        if (dronePosition.x <= buildingPositions[i].x + 3 && dronePosition.x >= buildingPositions[i].x - 3
+            && dronePosition.z <= buildingPositions[i].z + 3 && dronePosition.z >= buildingPositions[i].z - 3
+            && dronePosition.y <= buildingPositions[i].y + 10.3f) {
+            return true;
+            break;
+        }
+
+        if (dronePosition.x <= buildingPositions[i].x + 3 && dronePosition.x >= buildingPositions[i].x - 3
+            && dronePosition.z <= buildingPositions[i].z + 3 && dronePosition.z >= buildingPositions[i].z - 3
+            && dronePosition.y <= buildingPositions[i].y + 10) {
+            return true;
+            break;
+        }
+    }
+
+    for (int i = 0; i < treePositions.size(); i++) {
+        if (dronePosition.y <= treePositions[i].y + 1.5f && dronePosition.y >= treePositions[i].y - 1.5f) {
+            if (dronePosition.x <= treePositions[i].x + 3 && dronePosition.x >= treePositions[i].x - 3
+                && dronePosition.z <= treePositions[i].z + 3 && dronePosition.z >= treePositions[i].z - 3)
+                return true;
+        }
+        else if (dronePosition.y <= treePositions[i].y - 1.5f) {
+            if (dronePosition.x <= treePositions[i].x + 1 && dronePosition.x >= treePositions[i].x - 1
+                && dronePosition.z <= treePositions[i].z + 1 && dronePosition.z >= treePositions[i].z - 1)
+                return true;
+        }
+    }
+
+    return false;
 }
