@@ -36,6 +36,12 @@ namespace m1
         void OnWindowResize(int width, int height) override;
         void RenderDrone(float deltaTime);
 
+        void GenerateObstaclesPos();
+        void GenerateTree();
+        void GenerateBuildings();
+        void CheckCollisions(float deltaTimeSeconds);
+        void RenderTerrain();
+
     protected:
         implemented::Camera_H* camera;
         glm::mat4 projectionMatrix;
@@ -48,9 +54,16 @@ namespace m1
         float r = 10.0f;
         float propellerRotation = 0;
 
+        bool underTer = false;
+
         //glm::mat4 modelMatrix = glm::mat4(1);
 
+        glm::vec3 dronePosition;
+
+        std::vector<glm::vec3> treePositions;
+        std::vector<glm::vec3> buildingPositions;
+
         Drone* drone = new Drone();
-        Terrain* terrain = new Terrain(28, 28);
+        Terrain* terrain = new Terrain(40, 40);
 	};
 }

@@ -37,11 +37,6 @@ namespace implemented
 
         void MoveForward(float distance)
         {
-            // Translates the Camera_H using the `dir` vector computed from
-            // `forward`. Movement will always keep the Camera_H at the same
-            // height. For example, if you rotate your head up/down, and then
-            // walk forward, then you will still keep the same relative
-            // distance (height) to the ground!
             glm::vec3 dir = glm::normalize(glm::vec3(forward.x, 0, forward.z));
             position += dir * distance;
         }
@@ -55,38 +50,21 @@ namespace implemented
 
         void TranslateForward(float distance)
         {
-            // TODO(student): Translate the Camera_H using the `forward` vector.
-            // What's the difference between `TranslateForward()` and
-            // `MoveForward()`?
             position = position + glm::normalize(forward) * distance;
         }
 
         void TranslateUpward(float distance)
         {
-            // TODO(student): Translate the Camera_H using the `up` vector.
             position = position + glm::normalize(up) * distance;
         }
 
         void TranslateRight(float distance)
         {
-            // TODO(student): See instructions below. Read the entire thing!
-            // You need to translate the Camera_H using the `right` vector.
-            // Usually, however, translation using Camera_H's `right` vector
-            // is not very useful, because if the Camera_H is rotated around the
-            // `forward` vector, then the translation on the `right` direction
-            // will have an undesired effect, more precisely, the Camera_H will
-            // get closer or farther from the ground. The solution is to
-            // actually use the projected `right` vector (projected onto the
-            // ground plane), which makes more sense because we will keep the
-            // same distance from the ground plane.
             position = position + glm::normalize(right) * distance;
         }
 
         void RotateFirstPerson_OX(float angle)
         {
-            // TODO(student): Compute the new `forward` and `up` vectors.
-            // Don't forget to normalize the vectors! Use `glm::rotate()`.
-            //forward *= glm::rotate(glm::mat4(1.0f), angle, right);
             glm::vec4 newVector = glm::rotate(glm::mat4(1.0f), angle, right) * glm::vec4(forward, 1);
             forward = glm::normalize(glm::vec3(newVector));
 
@@ -97,9 +75,6 @@ namespace implemented
 
         void RotateFirstPerson_OY(float angle)
         {
-            // TODO(student): Compute the new `forward`, `up` and `right`
-            // vectors. Use `glm::rotate()`. Don't forget to normalize the
-            // vectors!
             glm::vec4 newVector = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0, 1, 0)) * glm::vec4(forward, 1);
             forward = glm::normalize(glm::vec3(newVector));
 
@@ -112,9 +87,6 @@ namespace implemented
 
         void RotateFirstPerson_OZ(float angle)
         {
-            // TODO(student): Compute the new `right` and `up`. This time,
-            // `forward` stays the same. Use `glm::rotate()`. Don't forget
-            // to normalize the vectors!
             glm::vec4 newVector = glm::rotate(glm::mat4(1.0f), angle, forward) * glm::vec4(forward, 1);
             forward = glm::normalize(glm::vec3(newVector));
 
@@ -124,8 +96,6 @@ namespace implemented
 
         void RotateThirdPerson_OX(float angle)
         {
-            // TODO(student): Rotate the Camera_H in third-person mode around
-            // the OX axis. Use `distanceToTarget` as translation distance.
             TranslateRight(distanceToTarget);
             RotateFirstPerson_OX(angle);
             TranslateRight(-distanceToTarget);
@@ -133,8 +103,6 @@ namespace implemented
 
         void RotateThirdPerson_OY(float angle)
         {
-            // TODO(student): Rotate the Camera_H in third-person mode around
-            // the OY axis.
             TranslateUpward(distanceToTarget);
             RotateFirstPerson_OY(angle);
             TranslateUpward(-distanceToTarget);
@@ -142,8 +110,6 @@ namespace implemented
 
         void RotateThirdPerson_OZ(float angle)
         {
-            // TODO(student): Rotate the Camera_H in third-person mode around
-            // the OZ axis.
             TranslateForward(distanceToTarget);
             RotateFirstPerson_OZ(angle);
             TranslateForward(-distanceToTarget);
