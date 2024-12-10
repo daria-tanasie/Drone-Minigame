@@ -20,7 +20,7 @@ void Tema2::Init()
     renderCameraTarget = false;
 
     camera = new implemented::Camera_H();
-    camera->Set(glm::vec3(0, 4, 3.5f), glm::vec3(0, 1, 0), glm::vec3(0, 1, 0));
+    camera->Set(glm::vec3(0, 4, 7.5f), glm::vec3(0, 1, 0), glm::vec3(0, 1, 0));
 
     {
         Mesh* mesh = new Mesh("sphere");
@@ -40,6 +40,15 @@ void Tema2::Init()
         meshes[mesh->GetMeshID()] = mesh;
     }
 
+    {
+        meshes["squareBig"] = obstacles->GenerateCheckPoint(glm::vec3(1, 1, 1));
+        meshes["squareLilG"] = obstacles->GenerateCheckPoint(glm::vec3(0, 1, 0));
+        meshes["squareLilR"] = obstacles->GenerateCheckPoint(glm::vec3(1, 0, 0));
+    }
+
+    {
+        meshes["timer"] = drone->GenerateTimer(glm::vec3(1, 1, 1));
+    }
 
     projectionMatrix = glm::perspective(fov, window->props.aspectRatio, 0.01f, 200.0f);
 
@@ -78,6 +87,12 @@ void Tema2::Init()
    obstacles->GenerateObstaclesPos();
    treePositions = obstacles->treePositions;
    buildingPositions = obstacles->buildingPositions;
+   gatePositions = obstacles->gatePositions;
+
+   checked.push_back(1);
+   for (int i = 1; i < gatePositions.size(); i++) {
+       checked.push_back(0);
+   }
 }
 
 
@@ -93,12 +108,19 @@ void Tema2::FrameStart()
 void Tema2::Update(float deltaTimeSeconds)
 {
     RenderTerrain();
+
+    if (checksPassed < 5) {
+        time = time - 0.005 * deltaTimeSeconds;
+    }
     
-    RenderDrone(deltaTimeSeconds);
-    dronePosition = camera->GetTargetPosition();
+    if (time > 0) {
+        RenderDrone(deltaTimeSeconds);
+        dronePosition = camera->GetTargetPosition();
+    }
     
     GenerateTree();
     GenerateBuildings();
+    GenerateChecks();
 
     CheckCollisions(deltaTimeSeconds);
 }
@@ -159,7 +181,7 @@ void Tema2::RenderMesh(Mesh* mesh, Shader* shader, const glm::mat4& modelMatrix)
         glUniform1f(frecvLoc, 0.5f);
 
         auto color1Loc = glGetUniformLocation(shader->GetProgramID(), "color1");
-        glUniform3f(color1Loc, 0.09f, 0.43f, 0.14f);
+        glUniform3f(color1Loc, 0.57f, 0.87f, 0.5f);
 
         auto color2Loc = glGetUniformLocation(shader->GetProgramID(), "color2");
         glUniform3f(color2Loc, 0.09f, 0.31f, 0.07f);
@@ -190,11 +212,11 @@ void Tema2::FrameEnd()
 void Tema2::OnInputUpdate(float deltaTime, int mods)
 {
     //if (window->MouseHold(GLFW_MOUSE_BUTTON_RIGHT))
-    //{
-        float cameraSpeed = 5.0f;
+    //{ 
+        float cameraSpeed = 5.0f, backDraft = 0.05;
         if (window->KeyHold(GLFW_KEY_W)) {
             if (CheckCollisions(deltaTime)) {
-                camera->TranslateForward(-cameraSpeed * deltaTime);
+                camera->MoveForward(-cameraSpeed * backDraft * 0.2);
             }
             else {
                 camera->MoveForward(cameraSpeed * deltaTime);
@@ -203,7 +225,7 @@ void Tema2::OnInputUpdate(float deltaTime, int mods)
 
         if (window->KeyHold(GLFW_KEY_A)) {
             if (CheckCollisions(deltaTime)) {
-                camera->TranslateRight((cameraSpeed * deltaTime));
+                camera->MoveRight((cameraSpeed * backDraft));
             }
             else {
                 camera->MoveRight(-(cameraSpeed * deltaTime));
@@ -211,64 +233,48 @@ void Tema2::OnInputUpdate(float deltaTime, int mods)
         }
 
         if (window->KeyHold(GLFW_KEY_S)) {
-            //camera->TranslateForward(-cameraSpeed * deltaTime);
-            //if (CheckCollisions(deltaTime)) {
-                //camera->TranslateForward((cameraSpeed * deltaTime));
-            //}
-            //else {
+            if (!CheckCollisions(deltaTime)) {
                 camera->MoveForward(-(cameraSpeed * deltaTime));
-            //}
+            }
         }
 
         if (window->KeyHold(GLFW_KEY_D)) {
-            //camera->TranslateRight(cameraSpeed * deltaTime);
             if (CheckCollisions(deltaTime)) {
-                camera->TranslateRight(-(cameraSpeed * deltaTime));
+                camera->MoveRight(-(cameraSpeed * backDraft));
             }
             else {
                 camera->MoveRight(cameraSpeed * deltaTime);
             }
         }
 
-        if (window->KeyHold(GLFW_KEY_Q) && !under) {
+        if (window->KeyHold(GLFW_KEY_F) && !under) {
             if (CheckCollisions(deltaTime)) {
-                camera->TranslateUpward(cameraSpeed * deltaTime);
+                camera->TranslateUpward(cameraSpeed * backDraft);
             }
             else {
                 camera->TranslateUpward(-cameraSpeed * deltaTime);
             }
         }
 
-        if (window->KeyHold(GLFW_KEY_E)) {
-            camera->TranslateUpward(cameraSpeed * deltaTime);
+        if (window->KeyHold(GLFW_KEY_R)) {
+            if (CheckCollisions(deltaTime)) {
+                camera->TranslateUpward(-cameraSpeed * backDraft);
+            }
+            else {
+                camera->TranslateUpward(cameraSpeed * deltaTime);
+            }
         }
 
-        if (window->KeyHold(GLFW_KEY_X)) {
+        if (window->KeyHold(GLFW_KEY_Q)) {
             drone->angle += deltaTime * RADIANS(50);
             camera->RotateThirdPerson_OY(RADIANS(50) * deltaTime);
         }
 
-        if (window->KeyHold(GLFW_KEY_C)) {
+        if (window->KeyHold(GLFW_KEY_E)) {
             drone->angle += deltaTime * -RADIANS(50);
             camera->RotateThirdPerson_OY(-RADIANS(50) * deltaTime);
         }
     //}
-
-    if (window->KeyHold(GLFW_KEY_T)) {
-        fov += RADIANS(5) * deltaTime;
-        projectionMatrix = glm::perspective(fov, window->props.aspectRatio, 0.1f, 100.0f);
-    }
-
-    if (window->KeyHold(GLFW_KEY_Y)) {
-        fov -= RADIANS(5) * deltaTime;
-        projectionMatrix = glm::perspective(fov, window->props.aspectRatio, 0.1f, 100.0f);
-    }
-
-    if (window->KeyHold(GLFW_KEY_J)) {
-        l -= 5 * deltaTime;
-        r += 5 * deltaTime;
-        projectionMatrix = glm::ortho(l, r, -10.0f, 10.0f, 0.1f, 100.0f);
-    }
 }
 
 
@@ -279,15 +285,6 @@ void Tema2::OnKeyPress(int key, int mods)
     {
         renderCameraTarget = !renderCameraTarget;
     }
-    // TODO(student): Switch projections
-
-    /*if (key == GLFW_KEY_O) {
-        projectionMatrix = glm::ortho(l, r, -10.0f, 10.0f, 0.1f, 100.0f);
-    }
-
-    if (key == GLFW_KEY_P) {
-        projectionMatrix = glm::perspective(fov, 10.f, 0.1f, 100.0f);
-    }*/
 }
 
 
@@ -366,11 +363,13 @@ void Tema2::RenderDrone(float deltaTime) {
         glm::mat4 paralMatrix1 = modelMatrix;
         paralMatrix1 *= transform::RotateOY(RADIANS(45));
         paralMatrix1 *= transform::RotateOY(drone->angle);
+        paralMatrix1 *= transform::Scale(1, 0.25, 1);
         RenderMesh(meshes["droneP1"], shaders["DroneShader"], paralMatrix1);
 
         glm::mat4 paralMatrix2 = modelMatrix;
         paralMatrix2 *= transform::RotateOY(RADIANS(-45));
         paralMatrix2 *= transform::RotateOY(drone->angle);
+        paralMatrix2 *= transform::Scale(1, 0.25, 1);
         RenderMesh(meshes["droneP1"], shaders["DroneShader"], paralMatrix2);
 
         glm::mat4 cubeMatrix1 = modelMatrix;
@@ -428,7 +427,41 @@ void Tema2::RenderDrone(float deltaTime) {
         propellerMatrix4 *= transform::RotateOY(propellerRotation);
         RenderMesh(meshes["droneE1"], shaders["DroneShader"], propellerMatrix4);
 
+        if (checksPassed < 5) {
+            RenderArrow(modelMatrix);
+        }
+
+        glm::mat4 timerMatrix = modelMatrix;
+        timerMatrix *= transform::RotateOY(drone->angle);
+        timerMatrix *= transform::Translate(0, 0.9, 0);
+        timerMatrix *= transform::Scale(time, 0.1, 1);
+        RenderMesh(meshes["timer"], shaders["VertexColor"], timerMatrix);
     }
+}
+
+void Tema2::RenderArrow(glm::mat4 modelMatrix) {
+        glm::mat4 arrowMatrix = modelMatrix;
+        glm::mat4 side1Matrix = modelMatrix;
+        glm::mat4 side2Matrix = modelMatrix;
+        glm::vec3 currentCheckPos = gatePositions[currentGreen];
+        float arrowAngle = atan2(currentCheckPos.x + 0.75f - dronePosition.x, currentCheckPos.z - dronePosition.z);
+        arrowMatrix *= transform::RotateOY(arrowAngle);
+        arrowMatrix *= transform::Translate(0, 0.5, 0);
+        arrowMatrix *= transform::Scale(0.2, 0.2, 0.4);
+
+        side1Matrix *= transform::RotateOY(arrowAngle);
+        side1Matrix *= transform::Translate(-0.07, 0.5, 0.3);
+        side1Matrix *= transform::Scale(0.1, 0.2, 0.1);
+        side1Matrix *= transform::RotateOY(RADIANS(45));
+
+        side2Matrix *= transform::RotateOY(arrowAngle);
+        side2Matrix *= transform::Translate(0.07, 0.5, 0.3);
+        side2Matrix *= transform::Scale(0.1, 0.2, 0.1);
+        side2Matrix *= transform::RotateOY(RADIANS(-45));
+
+        RenderMesh(meshes["droneP1"], shaders["VertexColor"], arrowMatrix);
+        RenderMesh(meshes["droneP1"], shaders["VertexColor"], side1Matrix);
+        RenderMesh(meshes["droneP1"], shaders["VertexColor"], side2Matrix);
 }
 
 void Tema2::GenerateBuildings()
@@ -454,6 +487,25 @@ void Tema2::GenerateTree()
         trunkMatrix *= transform::Scale(1, -treePositions[i].y, 1);
         RenderMesh(meshes["trunk"], shaders["ObstaclesShader"], trunkMatrix);
     }
+}
+
+void Tema2::GenerateChecks() {
+    for (int i = 0; i < gatePositions.size(); i++) {
+        glm::mat4 checkMatrix = glm::mat4(1);
+        checkMatrix *= transform::Translate(gatePositions[i].x, gatePositions[i].y, gatePositions[i].z);
+        RenderMesh(meshes["squareBig"], shaders["VertexColor"], checkMatrix);
+
+        glm::mat4 checkLilMatrix = glm::mat4(1);
+        checkLilMatrix *= transform::Translate(gatePositions[i].x + 0.15, gatePositions[i].y - 0.15, gatePositions[i].z);
+        checkLilMatrix *= transform::Scale(0.8, 0.8, 1);
+
+        if (checked[i] == 1) {
+            RenderMesh(meshes["squareLilG"], shaders["VertexColor"], checkLilMatrix);
+        }
+        else {
+            RenderMesh(meshes["squareLilR"], shaders["VertexColor"], checkLilMatrix);
+        }
+   }
 }
 
 float random(glm::vec2 st) {
@@ -515,6 +567,23 @@ bool Tema2::CheckCollisions(float deltaTimeSeconds) {
             if (dronePosition.x <= treePositions[i].x + 1 && dronePosition.x >= treePositions[i].x - 1
                 && dronePosition.z <= treePositions[i].z + 1 && dronePosition.z >= treePositions[i].z - 1)
                 return true;
+        }
+    }
+
+    for (int i = 0; i < gatePositions.size(); i++) {
+        if (i == currentGreen) {
+            if (dronePosition.y <= gatePositions[i].y && dronePosition.y >= gatePositions[i].y - 1.5f
+                && dronePosition.x >= gatePositions[i].x && dronePosition.x <= gatePositions[i].x + 1.5f
+                && dronePosition.z >= gatePositions[i].z - 0.2f && dronePosition.z <= gatePositions[i].z + 0.2f) {
+                
+                checksPassed++;
+                checked[i] = 0;
+                currentGreen++;
+
+                if (checksPassed < 5) {
+                    checked[currentGreen] = 1;
+                }
+            }
         }
     }
 

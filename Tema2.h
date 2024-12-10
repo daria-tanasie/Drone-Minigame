@@ -42,6 +42,8 @@ namespace m1
         void GenerateBuildings();
         bool CheckCollisions(float deltaTimeSeconds);
         void RenderTerrain();
+        void GenerateChecks();
+        void RenderArrow(glm::mat4 modelMatrix);
 
     protected:
         implemented::Camera_H* camera;
@@ -63,6 +65,11 @@ namespace m1
 
         std::vector<glm::vec3> treePositions;
         std::vector<glm::vec3> buildingPositions;
+        std::vector<glm::vec3> gatePositions;
+        std::vector<int> checked;
+        int currentGreen = 0;
+        int checksPassed = 0;
+        float time = 0.4;
 
         Drone* drone = new Drone();
         Terrain* terrain = new Terrain(40, 40);

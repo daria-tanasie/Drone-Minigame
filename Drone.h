@@ -10,6 +10,7 @@ namespace m1
 	public:
 
 		void Drone::createDrone();
+		Mesh* Drone::GenerateTimer(glm::vec3 color);
 
 		std::vector<VertexFormat> verticesP1;
 
@@ -25,8 +26,8 @@ namespace m1
 
 		std::vector<unsigned int> indices;
 
-		float offsetXZProp = 0.8, offsetYProp = 0.31;
-		float offsetXZC = 0.8, offsetYC = 0.2;
+		float offsetXZProp = 0.8, offsetYProp = 0.21;
+		float offsetXZC = 0.8, offsetYC = 0.1;
 
 		float angle = 0;
 

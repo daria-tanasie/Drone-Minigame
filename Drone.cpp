@@ -52,3 +52,22 @@ void Drone::createDrone() {
         2, 6, 4,        0, 2, 4,
     };
 }
+
+Mesh* Drone::GenerateTimer(glm::vec3 color) {
+    glm::vec3 center = glm::vec3(0, 0, 0);
+    float length = 1.5f;
+    std::vector<VertexFormat> vertices =
+    {
+        VertexFormat(center - glm::vec3(length / 2, 0, 0), color),
+        VertexFormat(center + glm::vec3(length / 2, 0, 0), color),
+        VertexFormat(center + glm::vec3(length / 2, length / 2, 0), color),
+        VertexFormat(center + glm::vec3(-length / 2, length / 2, 0), color)
+    };
+
+    Mesh* square = new Mesh("square");
+    std::vector<unsigned int> indices = { 0, 1, 2, 3 };
+    indices.push_back(0);
+    indices.push_back(2);
+    square->InitFromData(vertices, indices);
+    return square;
+}

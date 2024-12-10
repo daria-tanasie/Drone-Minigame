@@ -9,9 +9,11 @@ namespace m1
 	{
 	public:
 		void GenerateObstaclesPos();
+		Mesh* GenerateCheckPoint(glm::vec3 color);
 
 		std::vector<glm::vec3> treePositions;
 		std::vector<glm::vec3> buildingPositions;
+		std::vector<glm::vec3> gatePositions;
 
 		Obstacles() {}
 	};
