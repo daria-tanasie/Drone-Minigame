@@ -31,6 +31,9 @@ namespace m1
 
 		float angle = 0;
 
+		int currentGreen = 0;
+		int checksPassed = 0;
+		std::vector<int> checked;
 
 		Drone() {}
 	};

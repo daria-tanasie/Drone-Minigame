@@ -21,6 +21,12 @@ void Tema2::Init()
 
     camera = new implemented::Camera_H();
     camera->Set(glm::vec3(0, 4, 7.5f), glm::vec3(0, 1, 0), glm::vec3(0, 1, 0));
+    secondCamera = new implemented::Camera_H();
+    secondCamera->Set(glm::vec3(0, 4, 7.5f), glm::vec3(0, 1, 0), glm::vec3(0, 1, 0));
+
+    if (isMultiPlayer) {
+        secondDrone->createDrone();
+    }
 
     {
         Mesh* mesh = new Mesh("sphere");
@@ -47,7 +53,7 @@ void Tema2::Init()
     }
 
     {
-        meshes["timer"] = drone->GenerateTimer(glm::vec3(1, 1, 1));
+        meshes["timer"] = drone->GenerateTimer(glm::vec3(0.8f, 0.6f, 0.1f));
     }
 
     projectionMatrix = glm::perspective(fov, window->props.aspectRatio, 0.01f, 200.0f);
@@ -89,9 +95,13 @@ void Tema2::Init()
    buildingPositions = obstacles->buildingPositions;
    gatePositions = obstacles->gatePositions;
 
-   checked.push_back(1);
+   drone->checked.push_back(1);
+   secondDrone->checked.push_back(1);
    for (int i = 1; i < gatePositions.size(); i++) {
-       checked.push_back(0);
+       drone->checked.push_back(0);
+       if (isMultiPlayer) {
+           secondDrone->checked.push_back(0);
+       }
    }
 }
 
@@ -101,28 +111,47 @@ void Tema2::FrameStart()
     glClearColor(0.14f, 0.89f, 0.9f, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    int split = 1;
+
+    if (isMultiPlayer) {
+        split = 2;
+    }
+
     glm::ivec2 resolution = window->GetResolution();
-    glViewport(0, 0, resolution.x, resolution.y);
+    glViewport(0, 0, resolution.x / split, resolution.y);
 }
 
 void Tema2::Update(float deltaTimeSeconds)
 {
     RenderTerrain();
 
-    if (checksPassed < 5) {
+    if (drone->checksPassed < 5 && !isMultiPlayer) {
         time = time - 0.005 * deltaTimeSeconds;
     }
     
     if (time > 0) {
-        RenderDrone(deltaTimeSeconds);
+        RenderDrone(deltaTimeSeconds, camera, dronePosition, drone);
         dronePosition = camera->GetTargetPosition();
     }
-    
+
     GenerateTree();
     GenerateBuildings();
-    GenerateChecks();
+    GenerateChecks(drone);
+    CheckCollisions(deltaTimeSeconds, dronePosition, camera, drone);
 
-    CheckCollisions(deltaTimeSeconds);
+    if (isMultiPlayer) {
+        player = 2;
+        glm::ivec2 resolution = window->GetResolution();
+        glViewport(resolution.x / 2, 0, resolution.x / 2, resolution.y);
+        RenderTerrain();
+        RenderDrone(deltaTimeSeconds, secondCamera, dronePosition2, secondDrone);
+        dronePosition2 = secondCamera->GetTargetPosition();
+        GenerateTree();
+        GenerateBuildings();
+        GenerateChecks(secondDrone);
+        CheckCollisions(deltaTimeSeconds, dronePosition2, secondCamera, secondDrone);
+    }
+    player = 1;
 }
 
 void Tema2::CreateMesh(const char* name, const std::vector<VertexFormat>& vertices, const std::vector<unsigned int>& indices)
@@ -170,10 +199,20 @@ void Tema2::RenderMesh(Mesh* mesh, Shader* shader, const glm::mat4& modelMatrix)
     if (!mesh || !shader || !shader->program)
         return;
 
-    glUseProgram(shader->program);
-    glUniformMatrix4fv(shader->loc_view_matrix, 1, GL_FALSE, glm::value_ptr(camera->GetViewMatrix()));
-    glUniformMatrix4fv(shader->loc_projection_matrix, 1, GL_FALSE, glm::value_ptr(projectionMatrix));
-    glUniformMatrix4fv(shader->loc_model_matrix, 1, GL_FALSE, glm::value_ptr(modelMatrix));
+    if (player == 1) {
+        glUseProgram(shader->program);
+        glUniformMatrix4fv(shader->loc_view_matrix, 1, GL_FALSE, glm::value_ptr(camera->GetViewMatrix()));
+        glUniformMatrix4fv(shader->loc_projection_matrix, 1, GL_FALSE, glm::value_ptr(projectionMatrix));
+        glUniformMatrix4fv(shader->loc_model_matrix, 1, GL_FALSE, glm::value_ptr(modelMatrix));
+    }
+    else {
+        glUseProgram(shader->program);
+        glUniformMatrix4fv(shader->loc_view_matrix, 1, GL_FALSE, glm::value_ptr(secondCamera->GetViewMatrix()));
+        glUniformMatrix4fv(shader->loc_projection_matrix, 1, GL_FALSE, glm::value_ptr(projectionMatrix));
+        glUniformMatrix4fv(shader->loc_model_matrix, 1, GL_FALSE, glm::value_ptr(modelMatrix));
+    }
+
+    
 
     if (!strcmp(shader->GetName(),"TerrainShader")) {
 
@@ -206,75 +245,138 @@ void Tema2::RenderMesh(Mesh* mesh, Shader* shader, const glm::mat4& modelMatrix)
 
 void Tema2::FrameEnd()
 {
-    DrawCoordinateSystem(camera->GetViewMatrix(), projectionMatrix);
+    //DrawCoordinateSystem(camera->GetViewMatrix(), projectionMatrix);
 }
 
 void Tema2::OnInputUpdate(float deltaTime, int mods)
 {
-    //if (window->MouseHold(GLFW_MOUSE_BUTTON_RIGHT))
-    //{ 
-        float cameraSpeed = 5.0f, backDraft = 0.05;
-        if (window->KeyHold(GLFW_KEY_W)) {
-            if (CheckCollisions(deltaTime)) {
-                camera->MoveForward(-cameraSpeed * backDraft * 0.2);
+    float cameraSpeed = 5.0f, backDraft = 0.05;
+    if (window->KeyHold(GLFW_KEY_W)) {
+        if (CheckCollisions(deltaTime, dronePosition, camera, drone)) {
+            camera->MoveForward(-cameraSpeed * backDraft * 0.2);
+        }
+        else {
+            camera->MoveForward(cameraSpeed * deltaTime);
+        }
+    }
+
+    if (window->KeyHold(GLFW_KEY_A)) {
+        if (CheckCollisions(deltaTime, dronePosition, camera, drone)) {
+            camera->MoveRight((cameraSpeed * backDraft));
+        }
+        else {
+            camera->MoveRight(-(cameraSpeed * deltaTime));
+        }
+    }
+
+    if (window->KeyHold(GLFW_KEY_S)) {
+        if (!CheckCollisions(deltaTime, dronePosition, camera, drone)) {
+            camera->MoveForward(-(cameraSpeed * deltaTime));
+        }
+    }
+
+    if (window->KeyHold(GLFW_KEY_D)) {
+        if (CheckCollisions(deltaTime, dronePosition, camera, drone)) {
+            camera->MoveRight(-(cameraSpeed * backDraft));
+        }
+        else {
+            camera->MoveRight(cameraSpeed * deltaTime);
+        }
+    }
+
+    if (window->KeyHold(GLFW_KEY_F) && !under) {
+        if (CheckCollisions(deltaTime, dronePosition, camera, drone)) {
+            camera->TranslateUpward(cameraSpeed * backDraft);
+        }
+        else {
+            camera->TranslateUpward(-cameraSpeed * deltaTime);
+        }
+    }
+
+    if (window->KeyHold(GLFW_KEY_R)) {
+        if (CheckCollisions(deltaTime, dronePosition, camera, drone)) {
+            camera->TranslateUpward(-cameraSpeed * backDraft);
+        }
+        else {
+            camera->TranslateUpward(cameraSpeed * deltaTime);
+        }
+    }
+
+    if (window->KeyHold(GLFW_KEY_Q)) {
+        drone->angle += deltaTime * RADIANS(50);
+        camera->RotateThirdPerson_OY(RADIANS(50) * deltaTime);
+    }
+
+    if (window->KeyHold(GLFW_KEY_E)) {
+        drone->angle += deltaTime * -RADIANS(50);
+        camera->RotateThirdPerson_OY(-RADIANS(50) * deltaTime);
+    }
+
+    // -------------------------------------------------------
+
+    if (isMultiPlayer) {
+
+        if (window->KeyHold(GLFW_KEY_I)) {
+            if (CheckCollisions(deltaTime, dronePosition2, secondCamera, secondDrone)) {
+                secondCamera->MoveForward(-cameraSpeed * backDraft * 0.2);
             }
             else {
-                camera->MoveForward(cameraSpeed * deltaTime);
+                secondCamera->MoveForward(cameraSpeed * deltaTime);
             }
         }
 
-        if (window->KeyHold(GLFW_KEY_A)) {
-            if (CheckCollisions(deltaTime)) {
-                camera->MoveRight((cameraSpeed * backDraft));
+        if (window->KeyHold(GLFW_KEY_J)) {
+            if (CheckCollisions(deltaTime, dronePosition2, secondCamera, secondDrone)) {
+                secondCamera->MoveRight((cameraSpeed * backDraft));
             }
             else {
-                camera->MoveRight(-(cameraSpeed * deltaTime));
+                secondCamera->MoveRight(-(cameraSpeed * deltaTime));
             }
         }
 
-        if (window->KeyHold(GLFW_KEY_S)) {
-            if (!CheckCollisions(deltaTime)) {
-                camera->MoveForward(-(cameraSpeed * deltaTime));
+        if (window->KeyHold(GLFW_KEY_K)) {
+            if (!CheckCollisions(deltaTime, dronePosition2, secondCamera, secondDrone)) {
+                secondCamera->MoveForward(-(cameraSpeed * deltaTime));
             }
         }
 
-        if (window->KeyHold(GLFW_KEY_D)) {
-            if (CheckCollisions(deltaTime)) {
-                camera->MoveRight(-(cameraSpeed * backDraft));
+        if (window->KeyHold(GLFW_KEY_L)) {
+            if (CheckCollisions(deltaTime, dronePosition2, secondCamera, secondDrone)) {
+                secondCamera->MoveRight(-(cameraSpeed * backDraft));
             }
             else {
-                camera->MoveRight(cameraSpeed * deltaTime);
+                secondCamera->MoveRight(cameraSpeed * deltaTime);
             }
         }
 
-        if (window->KeyHold(GLFW_KEY_F) && !under) {
-            if (CheckCollisions(deltaTime)) {
-                camera->TranslateUpward(cameraSpeed * backDraft);
+        if (window->KeyHold(GLFW_KEY_H) && !under) {
+            if (CheckCollisions(deltaTime, dronePosition2, secondCamera, secondDrone)) {
+                secondCamera->TranslateUpward(cameraSpeed * backDraft);
             }
             else {
-                camera->TranslateUpward(-cameraSpeed * deltaTime);
+                secondCamera->TranslateUpward(-cameraSpeed * deltaTime);
             }
         }
 
-        if (window->KeyHold(GLFW_KEY_R)) {
-            if (CheckCollisions(deltaTime)) {
-                camera->TranslateUpward(-cameraSpeed * backDraft);
+        if (window->KeyHold(GLFW_KEY_Y)) {
+            if (CheckCollisions(deltaTime, dronePosition2, secondCamera, secondDrone)) {
+                secondCamera->TranslateUpward(-cameraSpeed * backDraft);
             }
             else {
-                camera->TranslateUpward(cameraSpeed * deltaTime);
+                secondCamera->TranslateUpward(cameraSpeed * deltaTime);
             }
         }
 
-        if (window->KeyHold(GLFW_KEY_Q)) {
-            drone->angle += deltaTime * RADIANS(50);
-            camera->RotateThirdPerson_OY(RADIANS(50) * deltaTime);
+        if (window->KeyHold(GLFW_KEY_U)) {
+            secondDrone->angle += deltaTime * RADIANS(50);
+            secondCamera->RotateThirdPerson_OY(RADIANS(50) * deltaTime);
         }
 
-        if (window->KeyHold(GLFW_KEY_E)) {
-            drone->angle += deltaTime * -RADIANS(50);
-            camera->RotateThirdPerson_OY(-RADIANS(50) * deltaTime);
+        if (window->KeyHold(GLFW_KEY_O)) {
+            secondDrone->angle += deltaTime * -RADIANS(50);
+            secondCamera->RotateThirdPerson_OY(-RADIANS(50) * deltaTime);
         }
-    //}
+    }
 }
 
 
@@ -355,96 +457,100 @@ void Tema2::RenderTerrain()
     RenderMesh(meshes["terrain"], shaders["TerrainShader"], terrainMatrix);
 }
 
-void Tema2::RenderDrone(float deltaTime) {
-    {
-        glm::mat4 modelMatrix = glm::mat4(1);
-        modelMatrix = glm::translate(modelMatrix, camera->GetTargetPosition());
+void Tema2::RenderDrone(float deltaTime, implemented::Camera_H* cam, glm::vec3 dronePos, Drone* drone) {
+    glm::mat4 modelMatrix = glm::mat4(1);
+    modelMatrix = glm::translate(modelMatrix, cam->GetTargetPosition());
 
-        glm::mat4 paralMatrix1 = modelMatrix;
-        paralMatrix1 *= transform::RotateOY(RADIANS(45));
-        paralMatrix1 *= transform::RotateOY(drone->angle);
-        paralMatrix1 *= transform::Scale(1, 0.25, 1);
-        RenderMesh(meshes["droneP1"], shaders["DroneShader"], paralMatrix1);
+    glm::mat4 paralMatrix1 = modelMatrix;
+    paralMatrix1 *= transform::RotateOY(RADIANS(45));
+    paralMatrix1 *= transform::RotateOY(drone->angle);
+    paralMatrix1 *= transform::Scale(1, 0.25, 1);
+    RenderMesh(meshes["droneP1"], shaders["DroneShader"], paralMatrix1);
 
-        glm::mat4 paralMatrix2 = modelMatrix;
-        paralMatrix2 *= transform::RotateOY(RADIANS(-45));
-        paralMatrix2 *= transform::RotateOY(drone->angle);
-        paralMatrix2 *= transform::Scale(1, 0.25, 1);
-        RenderMesh(meshes["droneP1"], shaders["DroneShader"], paralMatrix2);
+    glm::mat4 paralMatrix2 = modelMatrix;
+    paralMatrix2 *= transform::RotateOY(RADIANS(-45));
+    paralMatrix2 *= transform::RotateOY(drone->angle);
+    paralMatrix2 *= transform::Scale(1, 0.25, 1);
+    RenderMesh(meshes["droneP1"], shaders["DroneShader"], paralMatrix2);
 
-        glm::mat4 cubeMatrix1 = modelMatrix;
-        cubeMatrix1 *= transform::RotateOY(RADIANS(45));
-        cubeMatrix1 *= transform::RotateOY(drone->angle);
-        cubeMatrix1 *= transform::Translate(drone->offsetXZC, drone->offsetYC, 0);
-        RenderMesh(meshes["droneC1"], shaders["DroneShader"], cubeMatrix1);
+    glm::mat4 cubeMatrix1 = modelMatrix;
+    cubeMatrix1 *= transform::RotateOY(RADIANS(45));
+    cubeMatrix1 *= transform::RotateOY(drone->angle);
+    cubeMatrix1 *= transform::Translate(drone->offsetXZC, drone->offsetYC, 0);
+    RenderMesh(meshes["droneC1"], shaders["DroneShader"], cubeMatrix1);
 
-        glm::mat4 cubeMatrix2 = modelMatrix;
-        cubeMatrix2 *= transform::RotateOY(RADIANS(45));
-        cubeMatrix2 *= transform::RotateOY(drone->angle);
-        cubeMatrix2 *= transform::Translate(-drone->offsetXZC, drone->offsetYC, 0);
-        RenderMesh(meshes["droneC1"], shaders["DroneShader"], cubeMatrix2);
+    glm::mat4 cubeMatrix2 = modelMatrix;
+    cubeMatrix2 *= transform::RotateOY(RADIANS(45));
+    cubeMatrix2 *= transform::RotateOY(drone->angle);
+    cubeMatrix2 *= transform::Translate(-drone->offsetXZC, drone->offsetYC, 0);
+    RenderMesh(meshes["droneC1"], shaders["DroneShader"], cubeMatrix2);
 
-        glm::mat4 cubeMatrix3 = modelMatrix;
-        cubeMatrix3 *= transform::RotateOY(RADIANS(45));
-        cubeMatrix3 *= transform::RotateOY(drone->angle);
-        cubeMatrix3 *= transform::Translate(0, drone->offsetYC, drone->offsetXZC);
-        RenderMesh(meshes["droneC1"], shaders["DroneShader"], cubeMatrix3);
+    glm::mat4 cubeMatrix3 = modelMatrix;
+    cubeMatrix3 *= transform::RotateOY(RADIANS(45));
+    cubeMatrix3 *= transform::RotateOY(drone->angle);
+    cubeMatrix3 *= transform::Translate(0, drone->offsetYC, drone->offsetXZC);
+    RenderMesh(meshes["droneC1"], shaders["DroneShader"], cubeMatrix3);
 
-        glm::mat4 cubeMatrix4 = modelMatrix;
-        cubeMatrix4 *= transform::RotateOY(RADIANS(45));
-        cubeMatrix4 *= transform::RotateOY(drone->angle);
-        cubeMatrix4 *= transform::Translate(0, drone->offsetYC, -drone->offsetXZC);
-        RenderMesh(meshes["droneC1"], shaders["DroneShader"], cubeMatrix4);
+    glm::mat4 cubeMatrix4 = modelMatrix;
+    cubeMatrix4 *= transform::RotateOY(RADIANS(45));
+    cubeMatrix4 *= transform::RotateOY(drone->angle);
+    cubeMatrix4 *= transform::Translate(0, drone->offsetYC, -drone->offsetXZC);
+    RenderMesh(meshes["droneC1"], shaders["DroneShader"], cubeMatrix4);
 
-        propellerRotation += deltaTime * 10.0f;
+    propellerRotation += deltaTime * 10.0f;
 
-        glm::mat4 propellerMatrix1 = modelMatrix;
-        propellerMatrix1 *= transform::RotateOY(RADIANS(45));
-        propellerMatrix1 *= transform::RotateOY(drone->angle);
-        propellerMatrix1 *= transform::Translate(drone->offsetXZProp, drone->offsetYProp, 0);
-        propellerMatrix1 *= transform::RotateOY(propellerRotation);
-        RenderMesh(meshes["droneE1"], shaders["DroneShader"], propellerMatrix1);
+    glm::mat4 propellerMatrix1 = modelMatrix;
+    propellerMatrix1 *= transform::RotateOY(RADIANS(45));
+    propellerMatrix1 *= transform::RotateOY(drone->angle);
+    propellerMatrix1 *= transform::Translate(drone->offsetXZProp, drone->offsetYProp, 0);
+    propellerMatrix1 *= transform::RotateOY(propellerRotation);
+    RenderMesh(meshes["droneE1"], shaders["DroneShader"], propellerMatrix1);
 
-        glm::mat4 propellerMatrix2 = modelMatrix;
-        propellerMatrix2 *= transform::RotateOY(RADIANS(45));
-        propellerMatrix2 *= transform::RotateOY(drone->angle);
-        propellerMatrix2 *= transform::Translate(-drone->offsetXZProp, drone->offsetYProp, 0);
-        propellerMatrix2 *= transform::RotateOY(propellerRotation);
+    glm::mat4 propellerMatrix2 = modelMatrix;
+    propellerMatrix2 *= transform::RotateOY(RADIANS(45));
+    propellerMatrix2 *= transform::RotateOY(drone->angle);
+    propellerMatrix2 *= transform::Translate(-drone->offsetXZProp, drone->offsetYProp, 0);
+    propellerMatrix2 *= transform::RotateOY(propellerRotation);
 
-        RenderMesh(meshes["droneE1"], shaders["DroneShader"], propellerMatrix2);
+    RenderMesh(meshes["droneE1"], shaders["DroneShader"], propellerMatrix2);
 
-        glm::mat4 propellerMatrix3 = modelMatrix;
-        propellerMatrix3 *= transform::RotateOY(RADIANS(45));
-        propellerMatrix3 *= transform::RotateOY(drone->angle);
-        propellerMatrix3 *= transform::Translate(0, drone->offsetYProp, drone->offsetXZProp);
-        propellerMatrix3 *= transform::RotateOY(propellerRotation);
-        RenderMesh(meshes["droneE1"], shaders["DroneShader"], propellerMatrix3);
+    glm::mat4 propellerMatrix3 = modelMatrix;
+    propellerMatrix3 *= transform::RotateOY(RADIANS(45));
+    propellerMatrix3 *= transform::RotateOY(drone->angle);
+    propellerMatrix3 *= transform::Translate(0, drone->offsetYProp, drone->offsetXZProp);
+    propellerMatrix3 *= transform::RotateOY(propellerRotation);
+    RenderMesh(meshes["droneE1"], shaders["DroneShader"], propellerMatrix3);
 
-        glm::mat4 propellerMatrix4 = modelMatrix;
-        propellerMatrix4 *= transform::RotateOY(RADIANS(45));
-        propellerMatrix4 *= transform::RotateOY(drone->angle);
-        propellerMatrix4 *= transform::Translate(0, drone->offsetYProp, -drone->offsetXZProp);
-        propellerMatrix4 *= transform::RotateOY(propellerRotation);
-        RenderMesh(meshes["droneE1"], shaders["DroneShader"], propellerMatrix4);
+    glm::mat4 propellerMatrix4 = modelMatrix;
+    propellerMatrix4 *= transform::RotateOY(RADIANS(45));
+    propellerMatrix4 *= transform::RotateOY(drone->angle);
+    propellerMatrix4 *= transform::Translate(0, drone->offsetYProp, -drone->offsetXZProp);
+    propellerMatrix4 *= transform::RotateOY(propellerRotation);
+    RenderMesh(meshes["droneE1"], shaders["DroneShader"], propellerMatrix4);
 
-        if (checksPassed < 5) {
-            RenderArrow(modelMatrix);
-        }
+    if (drone->checksPassed < 5) {
+        RenderArrow(modelMatrix, dronePos, drone);
+    }
 
-        glm::mat4 timerMatrix = modelMatrix;
-        timerMatrix *= transform::RotateOY(drone->angle);
-        timerMatrix *= transform::Translate(0, 0.9, 0);
-        timerMatrix *= transform::Scale(time, 0.1, 1);
-        RenderMesh(meshes["timer"], shaders["VertexColor"], timerMatrix);
+    if (!isMultiPlayer) {
+        RenderTimer(modelMatrix, drone);
     }
 }
 
-void Tema2::RenderArrow(glm::mat4 modelMatrix) {
+void Tema2::RenderTimer(glm::mat4 modelMatrix, Drone* drone) {
+    glm::mat4 timerMatrix = modelMatrix;
+    timerMatrix *= transform::RotateOY(drone->angle);
+    timerMatrix *= transform::Translate(0, 0.9, 0);
+    timerMatrix *= transform::Scale(time, 0.1, 1);
+    RenderMesh(meshes["timer"], shaders["VertexColor"], timerMatrix);
+}
+
+void Tema2::RenderArrow(glm::mat4 modelMatrix, glm::vec3 dronePos, Drone* drone) {
         glm::mat4 arrowMatrix = modelMatrix;
         glm::mat4 side1Matrix = modelMatrix;
         glm::mat4 side2Matrix = modelMatrix;
-        glm::vec3 currentCheckPos = gatePositions[currentGreen];
-        float arrowAngle = atan2(currentCheckPos.x + 0.75f - dronePosition.x, currentCheckPos.z - dronePosition.z);
+        glm::vec3 currentCheckPos = gatePositions[drone->currentGreen];
+        float arrowAngle = atan2(currentCheckPos.x + 0.75f - dronePos.x, currentCheckPos.z - dronePos.z);
         arrowMatrix *= transform::RotateOY(arrowAngle);
         arrowMatrix *= transform::Translate(0, 0.5, 0);
         arrowMatrix *= transform::Scale(0.2, 0.2, 0.4);
@@ -489,7 +595,7 @@ void Tema2::GenerateTree()
     }
 }
 
-void Tema2::GenerateChecks() {
+void Tema2::GenerateChecks(Drone* drone) {
     for (int i = 0; i < gatePositions.size(); i++) {
         glm::mat4 checkMatrix = glm::mat4(1);
         checkMatrix *= transform::Translate(gatePositions[i].x, gatePositions[i].y, gatePositions[i].z);
@@ -499,7 +605,7 @@ void Tema2::GenerateChecks() {
         checkLilMatrix *= transform::Translate(gatePositions[i].x + 0.15, gatePositions[i].y - 0.15, gatePositions[i].z);
         checkLilMatrix *= transform::Scale(0.8, 0.8, 1);
 
-        if (checked[i] == 1) {
+        if (drone->checked[i] == 1) {
             RenderMesh(meshes["squareLilG"], shaders["VertexColor"], checkLilMatrix);
         }
         else {
@@ -532,56 +638,56 @@ float noise(glm::vec2 st) {
     return mixed;
 }
 
-bool Tema2::CheckCollisions(float deltaTimeSeconds) {
-    if (dronePosition.y - 1.5f <= noise(glm::vec2(dronePosition.x, dronePosition.z))) {
+bool Tema2::CheckCollisions(float deltaTimeSeconds, glm::vec3 dronePos, implemented::Camera_H* cam, Drone* drone) {
+    if (dronePos.y - 1.5f <= noise(glm::vec2(dronePos.x, dronePos.z))) {
         under = true;
-        camera->TranslateUpward(3.0f * deltaTimeSeconds);
+        cam->TranslateUpward(3.0f * deltaTimeSeconds);
     }
     else {
         under = false;
     }
 
     for (int i = 0; i < buildingPositions.size(); i++) {
-        if (dronePosition.x <= buildingPositions[i].x + 3 && dronePosition.x >= buildingPositions[i].x - 3
-            && dronePosition.z <= buildingPositions[i].z + 3 && dronePosition.z >= buildingPositions[i].z - 3
-            && dronePosition.y <= buildingPositions[i].y + 10.3f) {
+        if (dronePos.x <= buildingPositions[i].x + 3 && dronePos.x >= buildingPositions[i].x - 3
+            && dronePos.z <= buildingPositions[i].z + 3 && dronePos.z >= buildingPositions[i].z - 3
+            && dronePos.y <= buildingPositions[i].y + 10.3f) {
             return true;
             break;
         }
 
-        if (dronePosition.x <= buildingPositions[i].x + 3 && dronePosition.x >= buildingPositions[i].x - 3
-            && dronePosition.z <= buildingPositions[i].z + 3 && dronePosition.z >= buildingPositions[i].z - 3
-            && dronePosition.y <= buildingPositions[i].y + 10) {
+        if (dronePos.x <= buildingPositions[i].x + 3 && dronePos.x >= buildingPositions[i].x - 3
+            && dronePos.z <= buildingPositions[i].z + 3 && dronePos.z >= buildingPositions[i].z - 3
+            && dronePos.y <= buildingPositions[i].y + 10) {
             return true;
             break;
         }
     }
 
     for (int i = 0; i < treePositions.size(); i++) {
-        if (dronePosition.y <= treePositions[i].y + 1.5f && dronePosition.y >= treePositions[i].y - 1.5f) {
-            if (dronePosition.x <= treePositions[i].x + 3 && dronePosition.x >= treePositions[i].x - 3
-                && dronePosition.z <= treePositions[i].z + 3 && dronePosition.z >= treePositions[i].z - 3)
+        if (dronePos.y <= treePositions[i].y + 1.5f && dronePos.y >= treePositions[i].y - 1.5f) {
+            if (dronePos.x <= treePositions[i].x + 3 && dronePos.x >= treePositions[i].x - 3
+                && dronePos.z <= treePositions[i].z + 3 && dronePos.z >= treePositions[i].z - 3)
                 return true;
         }
-        else if (dronePosition.y <= treePositions[i].y - 1.5f) {
-            if (dronePosition.x <= treePositions[i].x + 1 && dronePosition.x >= treePositions[i].x - 1
-                && dronePosition.z <= treePositions[i].z + 1 && dronePosition.z >= treePositions[i].z - 1)
+        else if (dronePos.y <= treePositions[i].y - 1.5f) {
+            if (dronePos.x <= treePositions[i].x + 1 && dronePos.x >= treePositions[i].x - 1
+                && dronePos.z <= treePositions[i].z + 1 && dronePos.z >= treePositions[i].z - 1)
                 return true;
         }
     }
 
     for (int i = 0; i < gatePositions.size(); i++) {
-        if (i == currentGreen) {
-            if (dronePosition.y <= gatePositions[i].y && dronePosition.y >= gatePositions[i].y - 1.5f
-                && dronePosition.x >= gatePositions[i].x && dronePosition.x <= gatePositions[i].x + 1.5f
-                && dronePosition.z >= gatePositions[i].z - 0.2f && dronePosition.z <= gatePositions[i].z + 0.2f) {
+        if (i == drone->currentGreen) {
+            if (dronePos.y <= gatePositions[i].y && dronePos.y >= gatePositions[i].y - 1.5f
+                && dronePos.x >= gatePositions[i].x && dronePos.x <= gatePositions[i].x + 1.5f
+                && dronePos.z >= gatePositions[i].z - 0.2f && dronePos.z <= gatePositions[i].z + 0.2f) {
                 
-                checksPassed++;
-                checked[i] = 0;
-                currentGreen++;
+                drone->checksPassed++;
+                drone->checked[i] = 0;
+                drone->currentGreen++;
 
-                if (checksPassed < 5) {
-                    checked[currentGreen] = 1;
+                if (drone->checksPassed < 5) {
+                    drone->checked[drone->currentGreen] = 1;
                 }
             }
         }
